@@ -1,14 +1,14 @@
 module.exports = {
   siteMetadata: {
-    title: `Gatsby Starter Blog`,
+    title: `My Machine Learnings`,
     author: {
-      name: `Kyle Mathews`,
-      summary: `who lives and works in San Francisco building useful things.`,
+      name: `Sara Bouazzaoui Gryman`,
+      summary: `who lives in Spain and loves to experiment with machine learning.`,
     },
-    description: `A starter blog demonstrating what Gatsby can do.`,
-    siteUrl: `https://gatsby-starter-blog-demo.netlify.app/`,
+    description: `A blog about discovering, struggling, and figuring out machine learning.`,
+    siteUrl: `https://sarisboo.github.io`,
     social: {
-      twitter: `kylemathews`,
+      github: 'sarisboo'
     },
   },
   plugins: [

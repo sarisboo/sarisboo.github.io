@@ -1,9 +1,8 @@
 ---
-title: Extractive Summarizer Journey: Preprocessing
+title: "Extractive Summarizer Journey: Preprocessing"
 date: "2020-09-07T11:00:37.121Z"
+description: How to preprocess text data for NLP.
 ---
-
-## Intro
 
 ## Get the data 
 This example makes use the `cnn_dailymail` dataset, it contains 2 features news `articles` and their corresponding `highlights`. Since you need to make sure you have enough instances to train, validate and test our model you can load the `train`, `validation` and `test` sets separately from tensorflow datasets.
