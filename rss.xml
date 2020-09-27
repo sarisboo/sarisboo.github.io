@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[My Machine Learnings]]></title><description><![CDATA[A blog about discovering, struggling, and figuring out machine learning.]]></description><link>https://sarisboo.github.io</link><generator>GatsbyJS</generator><lastBuildDate>Sun, 27 Sep 2020 18:38:06 GMT</lastBuildDate><item><title><![CDATA[Extractive Summarizer Journey: Preprocessing]]></title><description><![CDATA[Get the data This example makes use the  dataset, it contains 2 features news  and their corresponding . Since you need to make sure you…]]></description><link>https://sarisboo.github.io/extractive-summarizer-journey-preprocessing/</link><guid isPermaLink="false">https://sarisboo.github.io/extractive-summarizer-journey-preprocessing/</guid><pubDate>Mon, 07 Sep 2020 11:00:37 GMT</pubDate><content:encoded>&lt;h2&gt;Get the data&lt;/h2&gt;
+&lt;p&gt;This example makes use the &lt;code class=&quot;language-text&quot;&gt;cnn_dailymail&lt;/code&gt; dataset, it contains 2 features news &lt;code class=&quot;language-text&quot;&gt;articles&lt;/code&gt; and their corresponding &lt;code class=&quot;language-text&quot;&gt;highlights&lt;/code&gt;. Since you need to make sure you have enough instances to train, validate and test our model you can load the &lt;code class=&quot;language-text&quot;&gt;train&lt;/code&gt;, &lt;code class=&quot;language-text&quot;&gt;validation&lt;/code&gt; and &lt;code class=&quot;language-text&quot;&gt;test&lt;/code&gt; sets separately from tensorflow datasets.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;ds_train = tfds.load(name=&amp;quot;cnn_dailymail&amp;quot;, split=&amp;quot;train&amp;quot;)
+ds_val = tfds.load(name=&amp;quot;cnn_dailymail&amp;quot;, split=&amp;quot;validation&amp;quot;)
+ds_test = tfds.load(name=&amp;quot;cnn_dailymail&amp;quot;, split=&amp;quot;test&amp;quot;)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;For easier data wrangling and preprocessing, you need to transform these datasets to pandas data frames. You can either use a custom function or use the &lt;code class=&quot;language-text&quot;&gt;as_dataframe()&lt;/code&gt; method (nightly version). Either way, you might need to convert the returned data frame rows from bytes to string before applying further transformations.&lt;/p&gt;
+&lt;h2&gt;Preliminary Cleanup&lt;/h2&gt;
+&lt;p&gt;This can be the most time-consuming step. Once you obtain your dataset, you need to wrangle the data to see what it looks like and apply the necessary cleaning steps.
+These steps can depend on the original input data. In this specific case, to extract raw text from the data, you need to remove all non-textual information by making use of regex expressions. Here is an example of text clean up for the input data using a concatenated regex expression.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;# Cleanup the datasets
+# Compose concatenated regex expression to clean data faster
+start_of_string = &amp;quot;^\s*&amp;quot;
+remove_cnn = &amp;quot;.*\((CNN|EW.com)\)?(\s+--\s+)?&amp;quot;
+remove_by_1 = (
+    &amp;quot;By \.([^.*]+\.)?([^.]*\. PUBLISHED: \.[^|]*\| \.)? UPDATED:[^.]+\.[^.]+\.\s*&amp;quot;
+)
+remove_by_2 = &amp;quot;By \.([^.*]+\.)?(\sand[^.*]+\.\s*)?(UPDATED[^.*]+\.[^.*]+\.\s*)?(\slast[^.*]+\.\s*)?&amp;quot;
+remove_last_updated = &amp;quot;Last[^.*]+\.\s&amp;quot;
+remove_twitter_link = &amp;quot;By \.([^.*]+\.)\s*Follow\s@@[^.*]+\.\s+&amp;quot;
+remove_published = &amp;quot;(PUBLISHED[^.*]+\.[^.*]+\.[^.*]+\.\s*)(UPDATED[^.*]+\.[^.*]+\.\s*)?&amp;quot;
+# end_of_string = &amp;#39;[\&amp;#39;&amp;quot;]*\s*$&amp;#39;
+
+r_cleanup_source = (
+    start_of_string
+    + &amp;quot;(&amp;quot;
+    + &amp;quot;|&amp;quot;.join(
+        [
+            remove_cnn,
+            remove_by_1,
+            remove_by_2,
+            remove_last_updated,
+            remove_twitter_link,
+            remove_published,
+        ]
+    )
+    + &amp;quot;)&amp;quot;
+)
+
+r_cleanup = re.compile(r_cleanup_source)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;You can then apply these clean up steps on the input data using the following function.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;def cleanup(text):
+    return r_cleanup.sub(&amp;quot;&amp;quot;, text)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;After you get rid of all the irrelevant information for your analysis, you need to proceed to pre-processing the plain text you get to make it NLP software friendly.&lt;/p&gt;
+&lt;h2&gt;Preprocessing&lt;/h2&gt;
+&lt;p&gt;During the preprocessing steps, you need to regularly check for and deal with missing values before you pass them into nltk’s preprocessing steps because your code will not work when you pass in missing values.&lt;/p&gt;
+&lt;h3&gt;Sentence Tokens&lt;/h3&gt;
+&lt;p&gt;It is the process of breaking up text into sentences, the simplest way to do it would be to split at full stops, but there might be abbreviations like E.U, Ms. or Dr. that make this step less obvious.
+Fortunately you can use libraries like nltk( &lt;code class=&quot;language-text&quot;&gt;sent_tokenize&lt;/code&gt; )or Spacy in most cases to take care of this. In the case of the &lt;code class=&quot;language-text&quot;&gt;cnn_dailymail&lt;/code&gt; the nltk sentence tokenizer inconsistently splits the sentences in cases like for example:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;sent_tokenize(&amp;#39;Bishop John Folda, of North Dakota, is taking time off after being diagnosed .He contracted the infection through contaminated food in Italy .Church members in Fargo, Grand Forks and Jamestown could have been exposed .&amp;#39;)&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Outputs:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;[&amp;#39;Bishop John Folda, of North Dakota, is taking time off after being diagnosed .He contracted the infection through contaminated food in Italy .Church members in Fargo, Grand Forks and Jamestown could have been exposed .&amp;#39;]&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;The expected output would be:&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;[&amp;#39;Bishop John Folda, of North Dakota, is taking time off after being diagnosed&amp;#39;,&amp;#39;He contracted the infection through contaminated food in Italy&amp;#39;, &amp;#39;Church members in Fargo, Grand Forks and Jamestown could have been exposed&amp;#39;]&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;This might be because of the trailing whitespace between the last word of the sentence so for now, so you might want to use a custom sentence tokenizer to work around this limitation.&lt;/p&gt;
+&lt;p&gt;One approach to this is to create a &lt;code class=&quot;language-text&quot;&gt;text_id&lt;/code&gt; out of the &lt;code class=&quot;language-text&quot;&gt;index&lt;/code&gt; column to be later be able to identify which sentence belongs to each text. &lt;/p&gt;
+&lt;p&gt;You then split sentences the naive way by using a simple sentence boundary regex and apply it to the data.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;def split_sentences(text):
+    # Segment texts into sentences
+    r_sentence_boundary = re.compile(
+        r&amp;quot;\s?[.!?]\s?&amp;quot;
+    )  # Modify this to not include abbreviations and other exceptions
+    return r_sentence_boundary.split(text)[:-1]
+
+
+# Split text by sentences
+def split_by_sentence(df):
+    df[&amp;quot;sentences&amp;quot;] = df[&amp;quot;article&amp;quot;].apply(lambda x: split_sentences(str(x)))&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Next, you make a list of tuples to keep track of &lt;code class=&quot;language-text&quot;&gt;text_id&lt;/code&gt; by &lt;code class=&quot;language-text&quot;&gt;sentence&lt;/code&gt;.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;# Make a list of (text_id, sentence_list) pairs
+def tup_list_maker(tup_list):
+    &amp;quot;&amp;quot;&amp;quot;
+    Takes a list of tuples with index 0 being the text_id and index 1 being a
+    list of sentences and broadcasts the text_id to each sentence
+    &amp;quot;&amp;quot;&amp;quot;
+    final_list = []
+    for item in tup_list:
+        index = item[0]
+        sentences = item[1]
+        for sentence in sentences:
+            pair = (index, sentence)
+            final_list.append(pair)
+    return final_list&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Then use this function to get each sentence with its own &lt;code class=&quot;language-text&quot;&gt;text_id&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;def create_full_tuple(df):
+    tuples = list(zip(df[&amp;quot;text_id&amp;quot;], [sentence for sentence in df[&amp;quot;sentences&amp;quot;]]))
+    tup_list = tup_list_maker(tuples)
+    # Converting the tuples list into a dataframe
+    sentences = pd.DataFrame(tup_list, columns=[&amp;quot;text_id&amp;quot;, &amp;quot;sentence&amp;quot;])
+    return sentences&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;And finally you assemble the full data frame with split sentences, text ids and the &lt;code class=&quot;language-text&quot;&gt;is_summary&lt;/code&gt; columns which is the labels columns indicating which sentence belongs to the summary.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;def create_full_final_dataframe(df):
+
+    &amp;quot;&amp;quot;&amp;quot;
+    Creates the final segmented dataframe with the `is_summary` column
+    &amp;quot;&amp;quot;&amp;quot;
+
+    dataframe = make_text_id(df)
+    df_article, df_highlights = split_into_2_dfs(dataframe)
+
+    df_article[&amp;quot;sentences&amp;quot;] = df_article[&amp;quot;article&amp;quot;].apply(
+        lambda x: split_sentences(str(x))
+    )
+    df_highlights[&amp;quot;sentences&amp;quot;] = df_highlights[&amp;quot;highlights&amp;quot;].apply(
+        lambda x: split_sentences(str(x))
+    )
+    segmented_df_articles = create_full_tuple(df_article)
+    segmented_df_highlights = create_full_tuple(df_highlights)
+
+    # Create targets for dataframes
+    segmented_df_articles[&amp;quot;is_summary_sentence&amp;quot;] = 0
+    segmented_df_highlights[&amp;quot;is_summary_sentence&amp;quot;] = 1
+
+    # Stack the 2 dataframes and order by `text_id` column
+    return segmented_df_articles.append(
+        segmented_df_highlights, ignore_index=True
+    ).sort_values(by=[&amp;quot;text_id&amp;quot;])&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h3&gt;Word Tokens&lt;/h3&gt;
+&lt;p&gt;For this step, it’s convenient to use nltk’s &lt;code class=&quot;language-text&quot;&gt;word_tokenize&lt;/code&gt; splitter to split each sentence into word tokens. This tokenizer splits words based on punctuation marks. Although it is not always splitting words correctly (for instance $10,000 is identified as two separate tokens [’$’, ‘10,000] and €1000 is identified as a single token [‘€1000’]),it is convenient to make use of it as a preliminary step for now.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;from nltk.tokenize import word_tokenize
+def tokenizer(df, column):
+    df[column].dropna(inplace=True)
+    df[&amp;quot;tokens&amp;quot;] = df[column].apply(word_tokenize)
+    return df&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h3&gt;Stopwords Removal&lt;/h3&gt;
+&lt;p&gt;Next you need to remove stop words, stop words are words like as, the, of, is. They carry no real meaning for the sentence so they’re not really relevant to your analysis. The nltk library provides a list of common English stop words but it is by no means standard and stop words may vary depending on the problem you’re trying to solve.
+In this case, you could use the nltk list for simplicity.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;from nltk.corpus import stopwords
+from ast import literal_eval 
+
+def stop_words_remover(tokenized_sent):
+    &amp;quot;&amp;quot;&amp;quot;
+    Removes stop words from a tokenized sentence
+    &amp;quot;&amp;quot;&amp;quot;
+    # Convert string back to list
+
+    filtered_sentence = []
+    stop_words = set(stopwords.words(&amp;quot;english&amp;quot;))
+    for word in literal_eval(tokenized_sent):
+        if word not in stop_words:
+            filtered_sentence.append(word)
+    return filtered_sentence&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;h3&gt;Stemming (Porter Stemmer)&lt;/h3&gt;
+&lt;p&gt;Stemming is the process of suffix stripping, it reduces the word to a base form that is representative of all the variants of that word.&lt;/p&gt;
+&lt;p&gt;A stemmer uses a set of fixed rules to decide how the word should be stripped (it might not always end up in a linguistically correct base form).
+For this analysis, you can use nltk’s Porter Stemmer for its simplicity and speed.&lt;/p&gt;
+&lt;div class=&quot;gatsby-highlight&quot; data-language=&quot;text&quot;&gt;&lt;pre class=&quot;language-text&quot;&gt;&lt;code class=&quot;language-text&quot;&gt;from nltk.stem import PorterStemmer
+from ast import literal_eval
+import pandas as pd
+
+porter = PorterStemmer()
+
+def stemmer(stemmed_sent):
+    &amp;quot;&amp;quot;&amp;quot;
+    Removes stop words from a tokenized sentence
+    &amp;quot;&amp;quot;&amp;quot;
+    porter = PorterStemmer()
+    stemmed_sentence = []
+    for word in literal_eval(stemmed_sent):
+        stemmed_word = porter.stem(word)
+        stemmed_sentence.append(stemmed_word)
+    return stemmed_sentence&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+&lt;p&gt;Voilà ! You just cleaned and preprocessed text data for text summarisation. The next step is feature engineering to extract important characteristics of the text to then feed it to our machine learning algorithm.&lt;/p&gt;</content:encoded></item></channel></rss>
