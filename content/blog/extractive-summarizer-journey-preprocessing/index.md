@@ -4,8 +4,10 @@ date: "2020-09-07T11:00:37.121Z"
 description: How to preprocess text data for NLP.
 ---
 
+This is the first article of a series that aims to explore how to preprocess textual data and extract features in to ultimately build a classic extractive summarizer using a machine learning algorithm.
+
 ## Get the data 
-This example makes use the `cnn_dailymail` dataset, it contains 2 features news `articles` and their corresponding `highlights`. Since you need to make sure you have enough instances to train, validate and test our model you can load the `train`, `validation` and `test` sets separately from tensorflow datasets.
+This example makes use of the `cnn_dailymail` dataset, it contains 2 features news `articles` and their corresponding `highlights`. Since you need to make sure you have enough instances to train, validate and test our model you can load the `train`, `validation` and `test` sets separately from tensorflow datasets.
 
 ```
 ds_train = tfds.load(name="cnn_dailymail", split="train")
@@ -83,7 +85,7 @@ The expected output would be:
 
 This might be because of the trailing whitespace between the last word of the sentence so for now, so you might want to use a custom sentence tokenizer to work around this limitation.
 
-One approach to this is to create a `text_id` out of the `index` column to be later be able to identify which sentence belongs to each text. 
+One approach to this is to create a `text_id` out of the `index` column to later be able to identify which sentence belongs to each text. 
 
 You then split sentences the naive way by using a simple sentence boundary regex and apply it to the data.
 
@@ -215,7 +217,7 @@ def stemmer(stemmed_sent):
     return stemmed_sentence
 ```
 
-Voilà ! You just cleaned and preprocessed text data for text summarisation. The next step is feature engineering to extract important characteristics of the text to then feed it to our machine learning algorithm.
+Voilà! You just cleaned and preprocessed text data for text summarization. The next step is feature engineering to extract important characteristics of the text to then feed it to our machine learning algorithm.
 
 
 

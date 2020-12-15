@@ -3,6 +3,7 @@ title: "Extractive Summarizer Journey: Extracting Features"
 date: "2020-11-14T12:09:28.121Z"
 description: How to preprocess text data for NLP.
 ---
+This is the second article of a series that aims to explore how to preprocess textual data and extract features to ultimately build a classic extractive summarizer using a machine learning algorithm.
 
 Since we approach the extractive summarisation here as a classification problem. We need to determine which features make a sentence summary worthy. Depending on the type of text you want to summarise you might want to select particular features. Here is an example of features you can use for experimentation (This is only a preselection since we will later perform a more thorough feature selection step to determine which ones are relevant). The features can be statistical (tf-idf, length of a sentence, sentence position) or linguistic (presence of proper noun, presence of specific words, presence of verbs, pronouns, punctuation etc...). As a result, each sentence of the document will be represented by an attribute vector of features. For some features, we will make use of the `nltk` library.
 
