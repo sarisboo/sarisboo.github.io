@@ -1,3 +1,6 @@
+## Publish 
+`npm run build`
+
 <!-- AUTO-GENERATED-CONTENT:START (STARTER) -->
 <p align="center">
   <a href="https://www.gatsbyjs.org">
@@ -13,6 +16,7 @@ Kick off your project with this blog boilerplate. This starter ships with the ma
 _Have another more specific idea? You may want to check out our vibrant collection of [official and community-created starters](https://www.gatsbyjs.org/docs/gatsby-starters/)._
 
 ## 🚀 Quick start
+
 
 1.  **Create a Gatsby site.**
 
