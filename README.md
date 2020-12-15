@@ -1,6 +1,3 @@
-## Publish 
-`npm run build`
-
 <!-- AUTO-GENERATED-CONTENT:START (STARTER) -->
 <p align="center">
   <a href="https://www.gatsbyjs.org">
@@ -100,4 +97,6 @@ Looking for more guidance? Full documentation for Gatsby lives [on the website](
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/gatsbyjs/gatsby-starter-blog)
 
+## Publish 
+`npm run deploy`
 <!-- AUTO-GENERATED-CONTENT:END -->
